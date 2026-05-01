@@ -1,0 +1,81 @@
+name: Video Translator
+
+on:
+  workflow_dispatch:
+    inputs:
+      video_url:
+        description: 'URL of video to translate'
+        required: true
+        default: ''
+      target_lang:
+        description: 'Target language code (e.g., es, fr, de)'
+        required: true
+        default: 'es'
+      whisper_model:
+        description: 'Whisper model size'
+        required: false
+        default: 'base'
+        type: choice
+        options:
+          - tiny
+          - base
+          - small
+
+jobs:
+  translate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360  # 6 hours max
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Install Python dependencies
+        run: |
+          pip install --upgrade pip
+          pip install openai-whisper moviepy edge-tts
+          pip install libretranslatepy argostranslate translatepy
+
+      - name: Download video
+        run: |
+          if [ -n "${{ inputs.video_url }}" ]; then
+            wget -O input_video.mp4 "${{ inputs.video_url }}"
+          else
+            echo "No video URL provided"
+            exit 1
+          fi
+
+      - name: Translate video
+        run: |
+          python video_translator.py \
+            input_video.mp4 \
+            --target-lang ${{ inputs.target_lang }} \
+            --whisper-model ${{ inputs.whisper_model }} \
+            --output translated_video_${{ inputs.target_lang }}.mp4
+
+      - name: Upload translated video
+        uses: actions/upload-artifact@v4
+        with:
+          name: translated-video
+          path: translated_video_${{ inputs.target_lang }}.mp4
+          retention-days: 7
+
+      - name: Create release
+        if: success()
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: video-${{ github.run_number }}
+          files: translated_video_${{ inputs.target_lang }}.mp4
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
