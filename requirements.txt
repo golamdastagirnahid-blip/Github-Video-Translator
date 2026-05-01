@@ -1,0 +1,19 @@
+# Free Video Translator - Requirements
+
+# Core dependencies
+openai-whisper>=20231117
+moviepy>=1.0.3
+edge-tts>=6.1.9
+
+# Translation engines
+libretranslatepy>=2.1.0
+argostranslate>=1.9.0
+translatepy>=5.0.0
+
+# Optional: Coqui TTS (better quality, slower)
+# TTS>=0.22.0
+
+# Optional: GPU acceleration
+# torch>=2.0.0
+# torchvision>=0.15.0
+# torchaudio>=2.0.0
